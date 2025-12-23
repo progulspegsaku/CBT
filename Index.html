@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { --primary: #4f46e5; }
+    body { background: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+    .glass-card { background: white; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .app-logo { max-height: 90px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+    .btn-indigo { background: var(--primary); color: white; border-radius: 10px; padding: 12px; border: none; font-weight: 600; transition: 0.3s; }
+    .form-control:read-only { background-color: #f1f5f9; }
+    #register-page, #login-quiz, #quiz-container, #loading-screen, #token-box, #result-page { display: none; }
+    .active { display: block !important; }
+    .nav-item { width: 40px; height: 40px; border-radius: 10px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; cursor: pointer; background: white; }
+    .nav-item.answered { background: var(--primary); color: white; border-color: var(--primary); }
+    .watermark { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 11px; color: #94a3b8; z-index: 100; }
+  </style>
+</head>
+<body>
+
+<div class="container py-5">
+  <div class="text-center mb-4">
+    <img src="https://drive.google.com/thumbnail?id=1R1LaflxxUkaArUmcAQ-SaAs-CqM1-9mx&sz=w500" class="app-logo mb-2" referrerpolicy="no-referrer">
+    <h4 class="fw-bold mb-0">CBT DIGITAL PORTAL</h4>
+    <small class="text-muted text-uppercase">Tes Berbasis Komputer Standard Kurikulum</small>
+  </div>
+
+  <div id="main-gate" class="active mx-auto text-center" style="max-width: 400px;">
+    <div class="glass-card p-5">
+      <div class="d-grid gap-3">
+        <button class="btn btn-indigo" onclick="showView('register-page')">REGISTRASI PESERTA</button>
+        <button class="btn btn-outline-dark fw-bold" onclick="showView('login-quiz')">LOGIN UJIAN</button>
+      </div>
+      <hr>
+      <a href="https://s.id/toer" target="_blank" class="text-decoration-none small fw-bold">Kunjungi Microsite <i class="fas fa-external-link-alt"></i></a>
+    </div>
+  </div>
+
+  <div id="register-page" class="mx-auto" style="max-width: 600px;">
+    <div class="glass-card p-4">
+      <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-sync-alt me-2"></i>Sinkronisasi NISN</h5>
+      <div class="mb-4">
+        <label class="small fw-bold">Masukkan NISN</label>
+        <div class="input-group">
+          <input type="number" id="reg-nisn" class="form-control border-primary" placeholder="Ketik 10 digit NISN...">
+          <button class="btn btn-primary" onclick="cekDapodik()"><i class="fas fa-search"></i> Cari</button>
+        </div>
+        <div id="status-cek" class="mt-2 small"></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-8"><label class="small fw-bold">Nama</label><input type="text" id="reg-nama" class="form-control" readonly></div>
+        <div class="col-md-4"><label class="small fw-bold">Absen</label><input type="number" id="reg-absen" class="form-control"></div>
+        <div class="col-md-12"><label class="small fw-bold">Sekolah</label><input type="text" id="reg-sekolah" class="form-control" readonly></div>
+        <div class="col-md-6"><label class="small fw-bold">Provinsi</label><input type="text" id="reg-provinsi" class="form-control" readonly></div>
+        <div class="col-md-6"><label class="small fw-bold">Kabupaten</label><input type="text" id="reg-kabupaten" class="form-control" readonly></div>
+        
+        <div class="col-md-6">
+          <label class="small fw-bold">Kelas</label>
+          <select id="reg-kelas" class="form-select" onchange="filterMapelByKelas()">
+            <option value="">-- Pilih Kelas --</option>
+            <option value="VII">VII</option><option value="VIII">VIII</option><option value="IX">IX</option>
+            <option value="X">X</option>
+            <option value="XI">XI</option><option value="XII">XII</option>
+          </select>
+        </div>
+        
+        <div class="col-md-6">
+          <label class="small fw-bold">Mapel (Otomatis Fase)</label>
+          <select id="reg-mapel" class="form-select">
+            <option value="">-- Pilih Kelas Dahulu --</option>
+          </select>
+        </div>
+      </div>
+      <button id="btn-submit-reg" class="btn btn-indigo w-100 mt-4" onclick="prosesRegistrasi()" disabled>AMBIL TOKEN</button>
+      
+      <div id="token-box" class="mt-4 p-4 rounded-3 bg-light border-2 text-center" style="border: 2px dashed #4f46e5;">
+        <p class="mb-1 small fw-bold">TOKEN ANDA:</p>
+        <h2 id="token-val" class="fw-bold text-primary mb-3"></h2>
+        <button class="btn btn-dark w-100" onclick="copyAndGo()">SALIN & LOGIN UJIAN</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-quiz" class="mx-auto" style="max-width: 400px;">
+    <div class="glass-card p-4">
+      <h5 class="fw-bold mb-4 text-center">Login Ruang Ujian</h5>
+      <div class="mb-3">
+        <label class="small fw-bold">Token</label>
+        <div class="input-group">
+          <input type="text" id="input-token" class="form-control" placeholder="Tempel token">
+          <button class="btn btn-outline-primary" onclick="pasteToken()"><i class="fas fa-paste"></i></button>
+        </div>
+      </div>
+      <button class="btn btn-indigo w-100" onclick="startExam()">MASUK UJIAN</button>
+    </div>
+  </div>
+
+  <div id="quiz-container">
+    <div class="row">
+      <div class="col-md-3 mb-4">
+        <div class="glass-card p-3 sticky-top" style="top:20px">
+          <h6 class="fw-bold small text-center">NAVIGASI SOAL</h6>
+          <div id="nav-panel" class="d-flex flex-wrap gap-2 justify-content-center"></div>
+          <hr>
+          <div class="text-center small text-muted"><i class="fas fa-wifi"></i> Status: Aman</div>
+        </div>
+      </div>
+      <div class="col-md-9">
+        <div id="soal-area"></div>
+        <button class="btn btn-success btn-lg w-100 mt-4 mb-5 shadow" onclick="finishExam()">KIRIM JAWABAN</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="result-page" class="text-center py-5 glass-card mx-auto" style="max-width: 500px;">
+    <i class="fas fa-check-circle fa-5x text-success mb-3"></i>
+    <h2 class="fw-bold">UJIAN SELESAI</h2>
+    <p>Nilai Anda:</p>
+    <h1 id="final-skor" class="display-1 fw-bold text-primary">0</h1>
+    <button class="btn btn-outline-primary mt-4" onclick="location.reload()">Kembali ke Beranda</button>
+  </div>
+
+  <div id="loading-screen" class="text-center py-5">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+    <p class="mt-3 fw-bold">Sedang memproses...</p>
+  </div>
+</div>
+
+<div class="watermark">SYSTEM BY <a href="https://s.id/toer" target="_blank" style="color:inherit; font-weight:bold;">CATUR PAMUNGKAS</a></div>
+
+<script>
+  let examData = [], userAnswers = {}, currentSiswa = {};
+  let masterMapel = []; // Simpan semua mapel dari database di sini
+  const mapelDariUrl = "<?= mapelUrl ?>"; 
+
+  window.onload = function() {
+    google.script.run.withSuccessHandler(function(list) {
+      masterMapel = list; // Simpan daftar asli
+      
+      // Jika ada Magic Link, jalankan filter otomatis
+      if(mapelDariUrl) {
+         // Logika menebak kelas dari nama mapel (Opsional)
+         filterMapelByKelas(); 
+      }
+    }).getDaftarMapel();
+    
+    const recovery = localStorage.getItem('cbt_platinum_backup');
+    if(recovery) { userAnswers = JSON.parse(recovery); }
+  };
+
+  // --- FITUR FILTER OTOMATIS JOS GANDOS ---
+  function filterMapelByKelas() {
+    const kelas = document.getElementById('reg-kelas').value;
+    const selMapel = document.getElementById('reg-mapel');
+    let fase = "";
+
+    if (["VII", "VIII", "IX"].includes(kelas)) fase = "-D";
+    else if (kelas === "X") fase = "-E";
+    else if (["XI", "XII"].includes(kelas)) fase = "-F";
+
+    if (!kelas) {
+      selMapel.innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
+      return;
+    }
+
+    // Filter masterMapel berdasarkan akhiran fase (-D, -E, atau -F)
+    // Catatan: Pastikan di Spreadsheet "Daftar_Mapel" Bapak menulis akhiran tersebut.
+    // Contoh: "Matematika-D" atau "Geografi-E"
+    let filtered = masterMapel.filter(m => m.endsWith(fase));
+
+    if (filtered.length > 0) {
+      selMapel.innerHTML = filtered.map(m => `<option value="${m}">${m}</option>`).join('');
+      // Jika ada Magic Link, tetap paksa pilih yang dari URL
+      if(mapelDariUrl && filtered.includes(mapelDariUrl)) selMapel.value = mapelDariUrl;
+    } else {
+      selMapel.innerHTML = `<option value="">Tidak ada mapel Fase ${fase.replace('-','')}</option>`;
+    }
+  }
+
+  function showView(id) {
+    document.querySelectorAll('.container > div').forEach(d => d.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  function cekDapodik() {
+    const nisn = document.getElementById('reg-nisn').value;
+    google.script.run.withSuccessHandler(res => {
+      if(res) {
+        document.getElementById('reg-nama').value = res.nama;
+        document.getElementById('reg-sekolah').value = res.sekolah;
+        document.getElementById('reg-provinsi').value = res.provinsi;
+        document.getElementById('reg-kabupaten').value = res.kabupaten;
+        document.getElementById('btn-submit-reg').disabled = false;
+        document.getElementById('status-cek').innerHTML = "<span class='text-success'>Data Siswa Ditemukan!</span>";
+      } else { alert("NISN tidak ditemukan!"); }
+    }).cariSiswaByNISN(nisn);
+  }
+
+  function prosesRegistrasi() {
+    const d = {
+      nisn: document.getElementById('reg-nisn').value,
+      nama: document.getElementById('reg-nama').value,
+      sekolah: document.getElementById('reg-sekolah').value,
+      provinsi: document.getElementById('reg-provinsi').value,
+      kabupaten: document.getElementById('reg-kabupaten').value,
+      absen: document.getElementById('reg-absen').value,
+      kelas: document.getElementById('reg-kelas').value,
+      mapel: document.getElementById('reg-mapel').value
+    };
+    
+    google.script.run.withSuccessHandler(isRegistered => {
+      if(isRegistered) {
+        alert("NISN Anda sudah terdaftar di mapel ini.");
+        return;
+      }
+      google.script.run.withSuccessHandler(res => {
+        document.getElementById('token-val').innerText = res.token;
+        document.getElementById('token-box').style.display = 'block';
+      }).registerSiswa(d);
+    }).cekUserAktif(d.nisn, d.mapel);
+  }
+
+  function copyAndGo() {
+    navigator.clipboard.writeText(document.getElementById('token-val').innerText);
+    showView('login-quiz');
+    document.getElementById('input-token').value = document.getElementById('token-val').innerText;
+  }
+
+  function pasteToken() {
+    navigator.clipboard.readText().then(t => document.getElementById('input-token').value = t);
+  }
+
+  function startExam() {
+    const t = document.getElementById('input-token').value;
+    const m = document.getElementById('reg-mapel').value;
+    if(!t || !m) return alert("Pilih Mapel dan Masukkan Token!");
+    
+    showView('loading-screen');
+    google.script.run.withSuccessHandler(res => {
+      if(res.status === "VALID") {
+        currentSiswa = res;
+        google.script.run.withSuccessHandler(data => {
+          examData = data;
+          renderQuiz();
+          showView('quiz-container');
+        }).getSoal(m);
+      } else { alert("Token Salah atau Kedaluwarsa!"); showView('login-quiz'); }
+    }).cekTokenValidasi(m, t);
+  }
+
+  function renderQuiz() {
+    let h = '', n = '';
+    examData.forEach((s, i) => {
+      const saved = userAnswers[i] || "";
+      h += `<div class="glass-card p-4 mb-4" id="soal-${i}">
+        <p class="fw-bold text-primary">SOAL NOMOR ${i+1}</p>
+        <div class="mb-4 fs-5">${s[2]}</div>
+        <div class="d-grid gap-2">
+          ${['A','B','C','D'].map(o => `
+            <input type="radio" class="btn-check" name="q${i}" id="q${i}${o}" value="${o}" onchange="markAnswer(${i}, '${o}')" ${saved === o ? 'checked' : ''}>
+            <label class="btn btn-outline-secondary text-start p-3" for="q${i}${o}"><b>${o}.</b> ${s[['A','B','C','D'].indexOf(o)+3]}</label>
+          `).join('')}
+        </div>
+      </div>`;
+      n += `<div class="nav-item ${saved ? 'answered' : ''}" id="nav-${i}" onclick="document.getElementById('soal-${i}').scrollIntoView()">${i+1}</div>`;
+    });
+    document.getElementById('soal-area').innerHTML = h;
+    document.getElementById('nav-panel').innerHTML = n;
+  }
+
+  function markAnswer(i, val) {
+    userAnswers[i] = val;
+    document.getElementById(`nav-${i}`).classList.add('answered');
+    localStorage.setItem('cbt_platinum_backup', JSON.stringify(userAnswers));
+  }
+
+  function finishExam() {
+    if(!confirm("Kirim semua jawaban sekarang?")) return;
+    showView('loading-screen');
+    let benar = 0;
+    examData.forEach((s, i) => { if(userAnswers[i] == s[8]) benar++; });
+    const skor = (benar / examData.length) * 100;
+
+    google.script.run.withSuccessHandler(() => {
+      localStorage.removeItem('cbt_platinum_backup');
+      document.getElementById('final-skor').innerText = skor.toFixed(2);
+      showView('result-page');
+    }).simpanHasilFull({
+      nisn: currentSiswa.nisn,
+      nama: currentSiswa.nama,
+      sekolah: currentSiswa.sekolah,
+      mapel: document.getElementById('reg-mapel').value,
+      skor: skor.toFixed(2),
+      detail: userAnswers
+    });
+  }
+</script>
+</body>
+</html>
